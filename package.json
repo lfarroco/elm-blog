@@ -1,0 +1,31 @@
+{
+  "name": "elm-blog",
+  "version": "0.0.1",
+  "description": "Static website generator written in Elm",
+  "main": "main.js",
+  "watch" : { "build": "{src}/*.elm"},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "elm-make src/Main.elm --output=main.js",
+    "compress": "uglifyjs main.js --compress --mangle --output main.min.js",
+    "watch" : "npm-watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lfarroco/elm-blog.git"
+  },
+  "keywords": [
+    "elm",
+    "static",
+    "website"
+  ],
+  "author": "Leonardo Farroco",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lfarroco/elm-blog/issues"
+  },
+  "homepage": "https://github.com/lfarroco/elm-blog#readme",
+  "dependencies": {
+    "npm-watch": "^0.3.0"
+  }
+}
