@@ -2,62 +2,22 @@ module Main exposing (main)
 
 import Html
 import Html.Attributes as Attrs
-import Html.Events exposing (..)
 import Http
 import Json.Decode as Decode
-import Task
 import Markdown
 
-type alias Model =
-  {
-    urls : List String
-    , posts :  List String
-    , error : Maybe Http.Error
 
-  }
+type alias Model =
+    { urls : List String
+    , posts : List String
+    , error : Maybe Http.Error
+    }
 
 
 type Msg
     = NoOp
     | GetPosts (Result Http.Error (List String))
     | GotPost (Result Http.Error String)
-
-
-
--- [
---   {
---     "name": "a.md",
---     "path": "posts/a.md",
---     "sha": "203f4c3bd83c88f419dd5fef4d80707e24435d45",
---     "size": 21,
---     "url": "https://api.github.com/repos/lfarroco/elm-blog/contents/posts/a.md?ref=master",
---     "html_url": "https://github.com/lfarroco/elm-blog/blob/master/posts/a.md",
---     "git_url": "https://api.github.com/repos/lfarroco/elm-blog/git/blobs/203f4c3bd83c88f419dd5fef4d80707e24435d45",
---     "download_url": "https://raw.githubusercontent.com/lfarroco/elm-blog/master/posts/a.md",
---     "type": "file",
---     "_links": {
---       "self": "https://api.github.com/repos/lfarroco/elm-blog/contents/posts/a.md?ref=master",
---       "git": "https://api.github.com/repos/lfarroco/elm-blog/git/blobs/203f4c3bd83c88f419dd5fef4d80707e24435d45",
---       "html": "https://github.com/lfarroco/elm-blog/blob/master/posts/a.md"
---     }
---   },
---   {
---     "name": "b.md",
---     "path": "posts/b.md",
---     "sha": "130bb00bf795b611d4a7a1263f0e844ce7b5ccdb",
---     "size": 29,
---     "url": "https://api.github.com/repos/lfarroco/elm-blog/contents/posts/b.md?ref=master",
---     "html_url": "https://github.com/lfarroco/elm-blog/blob/master/posts/b.md",
---     "git_url": "https://api.github.com/repos/lfarroco/elm-blog/git/blobs/130bb00bf795b611d4a7a1263f0e844ce7b5ccdb",
---     "download_url": "https://raw.githubusercontent.com/lfarroco/elm-blog/master/posts/b.md",
---     "type": "file",
---     "_links": {
---       "self": "https://api.github.com/repos/lfarroco/elm-blog/contents/posts/b.md?ref=master",
---       "git": "https://api.github.com/repos/lfarroco/elm-blog/git/blobs/130bb00bf795b611d4a7a1263f0e844ce7b5ccdb",
---       "html": "https://github.com/lfarroco/elm-blog/blob/master/posts/b.md"
---     }
---   }
--- ]
 
 
 postsUrl =
@@ -87,15 +47,9 @@ view model =
 
 
 title =
-    Html.h1 []
+    Html.h1 [ Attrs.class "website-title" ]
         [ Html.text "Leonardo Farroco"
         ]
-
-
-p =
-    Html.text
-        >> List.singleton
-        >> Html.p []
 
 
 menu =
@@ -121,17 +75,18 @@ menuItems =
     [ ( "#blog", "Blog" )
     , ( "#files", "Arquivos" )
     , ( "#about", "Sobre" )
-    , ( "#Contato", "Contato" )
+    , ( "#contact", "Contato" )
     ]
 
-articles = 
-  List.map article >> Html.div []
-  
+
+articles =
+    List.map article >> Html.div []
 
 
 article =
-  Markdown.toHtml [Attrs.class "post"]  
-    
+    Markdown.toHtml [ Attrs.class "markdown-body" ]
+        >> List.singleton
+        >> Html.article []
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -147,9 +102,9 @@ update msg model =
             in
                 case head of
                     Just url ->
-                        ( 
-                          { model | urls = List.drop 1 urls }
-                          , getPost url )
+                        ( { model | urls = List.drop 1 urls }
+                        , getPost url
+                        )
 
                     Nothing ->
                         ( model, Cmd.none )
@@ -160,7 +115,7 @@ update msg model =
         GotPost str ->
             case str of
                 Ok v ->
-                    ( {model | urls = List.drop 1 model.urls, posts = model.posts ++ [ v ] }
+                    ( { model | urls = List.drop 1 model.urls, posts = model.posts ++ [ v ] }
                     , case List.head model.urls of
                         Nothing ->
                             Cmd.none

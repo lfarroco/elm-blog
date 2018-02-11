@@ -1,17 +1,35 @@
+
 body {
-    font-family: 'Ubuntu', sans-serif;
     margin: 40px auto;
     max-width: 650px;
     line-height: 1.6;
     font-size: 18px;
     color: #444;
-    padding: 0 10px
+    padding: 0 10px;
+    font-family: 'Ubuntu', sans-serif;
+    background: #fffef8; 
 }
-
+.mardown-body *{
+    font-family: 'Ubuntu', sans-serif;
+}
 h1,
 h2,
 h3 {
     line-height: 1.2
+}
+
+article h1{
+    font-size: 26px;
+}
+article h2{
+    font-size: 24px;
+}
+article h3{
+    font-size: 20px;
+}
+
+.website-title{
+    font-size: 20px;
 }
 
 ul {
@@ -38,6 +56,15 @@ ul li:last-child {
 nav {
     padding-bottom: 20px;
     border-bottom: #ccc solid 1px;
+}
+
+nav a{
+    color: #444;
+    text-decoration: none;
+}
+nav a:hover{
+    color: #000;
+    text-decoration: underline;
 }
 
 article {
