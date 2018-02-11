@@ -2,30 +2,87 @@ module Main exposing (main)
 
 import Html
 import Html.Attributes as Attrs
+import Html.Events exposing (..)
+import Http
+import Json.Decode as Decode
+import Task
+import Markdown
 
-type alias Model = Int
+type alias Model =
+  {
+    urls : List String
+    , posts :  List String
+    , error : Maybe Http.Error
 
-type Msg = NoOp
+  }
 
-posts_url = "https://api.github.com/repos/lfarroco/elm-blog/contents/posts"
 
-main = 
-  Html.program
-     {
-       init = init
-       , view = view
-       , update = update
-       ,  subscriptions = subscriptions 
-    }
+type Msg
+    = NoOp
+    | GetPosts (Result Http.Error (List String))
+    | GotPost (Result Http.Error String)
 
-init = ( 2, Cmd.none)
 
-view model = 
+
+-- [
+--   {
+--     "name": "a.md",
+--     "path": "posts/a.md",
+--     "sha": "203f4c3bd83c88f419dd5fef4d80707e24435d45",
+--     "size": 21,
+--     "url": "https://api.github.com/repos/lfarroco/elm-blog/contents/posts/a.md?ref=master",
+--     "html_url": "https://github.com/lfarroco/elm-blog/blob/master/posts/a.md",
+--     "git_url": "https://api.github.com/repos/lfarroco/elm-blog/git/blobs/203f4c3bd83c88f419dd5fef4d80707e24435d45",
+--     "download_url": "https://raw.githubusercontent.com/lfarroco/elm-blog/master/posts/a.md",
+--     "type": "file",
+--     "_links": {
+--       "self": "https://api.github.com/repos/lfarroco/elm-blog/contents/posts/a.md?ref=master",
+--       "git": "https://api.github.com/repos/lfarroco/elm-blog/git/blobs/203f4c3bd83c88f419dd5fef4d80707e24435d45",
+--       "html": "https://github.com/lfarroco/elm-blog/blob/master/posts/a.md"
+--     }
+--   },
+--   {
+--     "name": "b.md",
+--     "path": "posts/b.md",
+--     "sha": "130bb00bf795b611d4a7a1263f0e844ce7b5ccdb",
+--     "size": 29,
+--     "url": "https://api.github.com/repos/lfarroco/elm-blog/contents/posts/b.md?ref=master",
+--     "html_url": "https://github.com/lfarroco/elm-blog/blob/master/posts/b.md",
+--     "git_url": "https://api.github.com/repos/lfarroco/elm-blog/git/blobs/130bb00bf795b611d4a7a1263f0e844ce7b5ccdb",
+--     "download_url": "https://raw.githubusercontent.com/lfarroco/elm-blog/master/posts/b.md",
+--     "type": "file",
+--     "_links": {
+--       "self": "https://api.github.com/repos/lfarroco/elm-blog/contents/posts/b.md?ref=master",
+--       "git": "https://api.github.com/repos/lfarroco/elm-blog/git/blobs/130bb00bf795b611d4a7a1263f0e844ce7b5ccdb",
+--       "html": "https://github.com/lfarroco/elm-blog/blob/master/posts/b.md"
+--     }
+--   }
+-- ]
+
+
+postsUrl =
+    "https://api.github.com/repos/lfarroco/elm-blog/contents/posts"
+
+
+main =
+    Html.program
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
+
+
+init =
+    ( Model [] [] Nothing, getBlogPosts )
+
+
+view model =
     Html.div [ Attrs.class "container" ]
         [ title
         , menu menuItems
         , Html.main_ []
-            [ article ]
+            [ articles model.posts ]
         ]
 
 
@@ -67,23 +124,73 @@ menuItems =
     , ( "#Contato", "Contato" )
     ]
 
+articles = 
+  List.map article >> Html.div []
+  
+
 
 article =
-    Html.article []
-        [ Html.time [] [ Html.text "3 de dezembro de 2017" ]
-        , Html.h2 [] [ Html.text "teste" ]
-        , p "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean id nisi sagittis, finibus tellus sagittis, tempor diam. Maecenas lectus velit, imperdiet id finibus in, imperdiet in turpis. Integer porttitor tincidunt quam, in posuere lacus consectetur vel. Mauris eget sodales dolor. Vestibulum at semper augue, eu lobortis dolor. Sed sem urna, molestie bibendum vehicula sed, gravida nec justo. Nulla faucibus erat eget neque sodales bibendum eu sit amet justo. Curabitur dapibus diam eget felis mattis accumsan. Ut vehicula rutrum fermentum. Fusce sit amet tristique purus."
-        , p "Maecenas ornare accumsan fermentum. Praesent mattis metus et sapien aliquet blandit. Duis tristique volutpat mollis. Maecenas consectetur viverra maximus. Nam in enim faucibus, blandit eros maximus, pulvinar augue. Nulla sodales pulvinar elit, et blandit ante malesuada nec. Sed luctus justo et sapien condimentum, id facilisis diam vulputate. Donec tincidunt hendrerit ex fermentum luctus. Donec vel dignissim magna, id mollis orci. Sed at orci non leo volutpat venenatis."
-        , p "Curabitur risus urna, blandit sit amet sodales quis, lacinia in mauris. Integer iaculis rhoncus porttitor. Nam at est ac orci tempor bibendum nec sit amet turpis. Duis pellentesque felis eu lacus scelerisque rutrum. In et efficitur nulla. Maecenas non magna id mi viverra mattis eu a felis. Praesent sit amet risus odio. Proin fringilla, nisl et condimentum scelerisque, leo felis maximus est, ut rutrum elit mi ac nisi."
-        ]
+  Markdown.toHtml [Attrs.class "post"]  
+    
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-           case msg of
-               NoOp ->
-                   ( model, Cmd.none )
- 
+    case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
+        GetPosts (Ok urls) ->
+            let
+                head =
+                    List.head urls
+            in
+                case head of
+                    Just url ->
+                        ( 
+                          { model | urls = List.drop 1 urls }
+                          , getPost url )
+
+                    Nothing ->
+                        ( model, Cmd.none )
+
+        GetPosts (Err err) ->
+            ( { model | error = Just err }, Cmd.none )
+
+        GotPost str ->
+            case str of
+                Ok v ->
+                    ( {model | urls = List.drop 1 model.urls, posts = model.posts ++ [ v ] }
+                    , case List.head model.urls of
+                        Nothing ->
+                            Cmd.none
+
+                        Just url ->
+                            getPost url
+                    )
+
+                Err err ->
+                    ( { model | error = Just err }, Cmd.none )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-          Sub.none
+    Sub.none
+
+
+getBlogPosts : Cmd Msg
+getBlogPosts =
+    let
+        url =
+            postsUrl
+    in
+        Http.send GetPosts (Http.get url decodePostsUrls)
+
+
+decodePostsUrls =
+    Decode.list <| Decode.at [ "download_url" ] Decode.string
+
+
+getPost : String -> Cmd Msg
+getPost url =
+    Http.send GotPost (Http.getString url)
