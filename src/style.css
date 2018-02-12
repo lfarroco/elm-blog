@@ -19,13 +19,13 @@ h3 {
 }
 
 article h1{
-    font-size: 26px;
+    font-size: 21px;
 }
 article h2{
-    font-size: 24px;
+    font-size: 18px;
 }
 article h3{
-    font-size: 20px;
+    font-size: 15px;
 }
 
 .website-title{
@@ -55,7 +55,7 @@ ul li:last-child {
 
 nav {
     border-bottom: #ccc solid 1px;
-    background: #444;
+    background: #C19C7F;
 }
 
 nav a{
@@ -65,7 +65,7 @@ nav a{
 }
 nav a:hover{
     color: #444;
-    background: #fff;
+    background: #fffef8; 
     text-decoration: underline;
 }
 

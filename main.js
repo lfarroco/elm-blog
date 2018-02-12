@@ -6142,6 +6142,10 @@ var _elm_lang$core$Json_Decode$bool = _elm_lang$core$Native_Json.decodePrimitive
 var _elm_lang$core$Json_Decode$string = _elm_lang$core$Native_Json.decodePrimitive('string');
 var _elm_lang$core$Json_Decode$Decoder = {ctor: 'Decoder'};
 
+var _elm_lang$core$Process$kill = _elm_lang$core$Native_Scheduler.kill;
+var _elm_lang$core$Process$sleep = _elm_lang$core$Native_Scheduler.sleep;
+var _elm_lang$core$Process$spawn = _elm_lang$core$Native_Scheduler.spawn;
+
 var _elm_lang$core$Tuple$mapSecond = F2(
 	function (func, _p0) {
 		var _p1 = _p0;
@@ -6168,6 +6172,192 @@ var _elm_lang$core$Tuple$first = function (_p6) {
 	var _p7 = _p6;
 	return _p7._0;
 };
+
+var _elm_lang$dom$Native_Dom = function() {
+
+var fakeNode = {
+	addEventListener: function() {},
+	removeEventListener: function() {}
+};
+
+var onDocument = on(typeof document !== 'undefined' ? document : fakeNode);
+var onWindow = on(typeof window !== 'undefined' ? window : fakeNode);
+
+function on(node)
+{
+	return function(eventName, decoder, toTask)
+	{
+		return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+
+			function performTask(event)
+			{
+				var result = A2(_elm_lang$core$Json_Decode$decodeValue, decoder, event);
+				if (result.ctor === 'Ok')
+				{
+					_elm_lang$core$Native_Scheduler.rawSpawn(toTask(result._0));
+				}
+			}
+
+			node.addEventListener(eventName, performTask);
+
+			return function()
+			{
+				node.removeEventListener(eventName, performTask);
+			};
+		});
+	};
+}
+
+var rAF = typeof requestAnimationFrame !== 'undefined'
+	? requestAnimationFrame
+	: function(callback) { callback(); };
+
+function withNode(id, doStuff)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		rAF(function()
+		{
+			var node = document.getElementById(id);
+			if (node === null)
+			{
+				callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NotFound', _0: id }));
+				return;
+			}
+			callback(_elm_lang$core$Native_Scheduler.succeed(doStuff(node)));
+		});
+	});
+}
+
+
+// FOCUS
+
+function focus(id)
+{
+	return withNode(id, function(node) {
+		node.focus();
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function blur(id)
+{
+	return withNode(id, function(node) {
+		node.blur();
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+
+// SCROLLING
+
+function getScrollTop(id)
+{
+	return withNode(id, function(node) {
+		return node.scrollTop;
+	});
+}
+
+function setScrollTop(id, desiredScrollTop)
+{
+	return withNode(id, function(node) {
+		node.scrollTop = desiredScrollTop;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function toBottom(id)
+{
+	return withNode(id, function(node) {
+		node.scrollTop = node.scrollHeight;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function getScrollLeft(id)
+{
+	return withNode(id, function(node) {
+		return node.scrollLeft;
+	});
+}
+
+function setScrollLeft(id, desiredScrollLeft)
+{
+	return withNode(id, function(node) {
+		node.scrollLeft = desiredScrollLeft;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function toRight(id)
+{
+	return withNode(id, function(node) {
+		node.scrollLeft = node.scrollWidth;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+
+// SIZE
+
+function width(options, id)
+{
+	return withNode(id, function(node) {
+		switch (options.ctor)
+		{
+			case 'Content':
+				return node.scrollWidth;
+			case 'VisibleContent':
+				return node.clientWidth;
+			case 'VisibleContentWithBorders':
+				return node.offsetWidth;
+			case 'VisibleContentWithBordersAndMargins':
+				var rect = node.getBoundingClientRect();
+				return rect.right - rect.left;
+		}
+	});
+}
+
+function height(options, id)
+{
+	return withNode(id, function(node) {
+		switch (options.ctor)
+		{
+			case 'Content':
+				return node.scrollHeight;
+			case 'VisibleContent':
+				return node.clientHeight;
+			case 'VisibleContentWithBorders':
+				return node.offsetHeight;
+			case 'VisibleContentWithBordersAndMargins':
+				var rect = node.getBoundingClientRect();
+				return rect.bottom - rect.top;
+		}
+	});
+}
+
+return {
+	onDocument: F3(onDocument),
+	onWindow: F3(onWindow),
+
+	focus: focus,
+	blur: blur,
+
+	getScrollTop: getScrollTop,
+	setScrollTop: F2(setScrollTop),
+	getScrollLeft: getScrollLeft,
+	setScrollLeft: F2(setScrollLeft),
+	toBottom: toBottom,
+	toRight: toRight,
+
+	height: F2(height),
+	width: F2(width)
+};
+
+}();
+
+var _elm_lang$dom$Dom_LowLevel$onWindow = _elm_lang$dom$Native_Dom.onWindow;
+var _elm_lang$dom$Dom_LowLevel$onDocument = _elm_lang$dom$Native_Dom.onDocument;
 
 var _elm_lang$virtual_dom$VirtualDom_Debug$wrap;
 var _elm_lang$virtual_dom$VirtualDom_Debug$wrapWithFlags;
@@ -8918,6 +9108,408 @@ var _elm_lang$http$Http$StringPart = F2(
 	});
 var _elm_lang$http$Http$stringPart = _elm_lang$http$Http$StringPart;
 
+var _elm_lang$navigation$Native_Navigation = function() {
+
+
+// FAKE NAVIGATION
+
+function go(n)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		if (n !== 0)
+		{
+			history.go(n);
+		}
+		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+	});
+}
+
+function pushState(url)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		history.pushState({}, '', url);
+		callback(_elm_lang$core$Native_Scheduler.succeed(getLocation()));
+	});
+}
+
+function replaceState(url)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		history.replaceState({}, '', url);
+		callback(_elm_lang$core$Native_Scheduler.succeed(getLocation()));
+	});
+}
+
+
+// REAL NAVIGATION
+
+function reloadPage(skipCache)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		document.location.reload(skipCache);
+		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+	});
+}
+
+function setLocation(url)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		try
+		{
+			window.location = url;
+		}
+		catch(err)
+		{
+			// Only Firefox can throw a NS_ERROR_MALFORMED_URI exception here.
+			// Other browsers reload the page, so let's be consistent about that.
+			document.location.reload(false);
+		}
+		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+	});
+}
+
+
+// GET LOCATION
+
+function getLocation()
+{
+	var location = document.location;
+
+	return {
+		href: location.href,
+		host: location.host,
+		hostname: location.hostname,
+		protocol: location.protocol,
+		origin: location.origin,
+		port_: location.port,
+		pathname: location.pathname,
+		search: location.search,
+		hash: location.hash,
+		username: location.username,
+		password: location.password
+	};
+}
+
+
+// DETECT IE11 PROBLEMS
+
+function isInternetExplorer11()
+{
+	return window.navigator.userAgent.indexOf('Trident') !== -1;
+}
+
+
+return {
+	go: go,
+	setLocation: setLocation,
+	reloadPage: reloadPage,
+	pushState: pushState,
+	replaceState: replaceState,
+	getLocation: getLocation,
+	isInternetExplorer11: isInternetExplorer11
+};
+
+}();
+
+var _elm_lang$navigation$Navigation$replaceState = _elm_lang$navigation$Native_Navigation.replaceState;
+var _elm_lang$navigation$Navigation$pushState = _elm_lang$navigation$Native_Navigation.pushState;
+var _elm_lang$navigation$Navigation$go = _elm_lang$navigation$Native_Navigation.go;
+var _elm_lang$navigation$Navigation$reloadPage = _elm_lang$navigation$Native_Navigation.reloadPage;
+var _elm_lang$navigation$Navigation$setLocation = _elm_lang$navigation$Native_Navigation.setLocation;
+var _elm_lang$navigation$Navigation_ops = _elm_lang$navigation$Navigation_ops || {};
+_elm_lang$navigation$Navigation_ops['&>'] = F2(
+	function (task1, task2) {
+		return A2(
+			_elm_lang$core$Task$andThen,
+			function (_p0) {
+				return task2;
+			},
+			task1);
+	});
+var _elm_lang$navigation$Navigation$notify = F3(
+	function (router, subs, location) {
+		var send = function (_p1) {
+			var _p2 = _p1;
+			return A2(
+				_elm_lang$core$Platform$sendToApp,
+				router,
+				_p2._0(location));
+		};
+		return A2(
+			_elm_lang$navigation$Navigation_ops['&>'],
+			_elm_lang$core$Task$sequence(
+				A2(_elm_lang$core$List$map, send, subs)),
+			_elm_lang$core$Task$succeed(
+				{ctor: '_Tuple0'}));
+	});
+var _elm_lang$navigation$Navigation$cmdHelp = F3(
+	function (router, subs, cmd) {
+		var _p3 = cmd;
+		switch (_p3.ctor) {
+			case 'Jump':
+				return _elm_lang$navigation$Navigation$go(_p3._0);
+			case 'New':
+				return A2(
+					_elm_lang$core$Task$andThen,
+					A2(_elm_lang$navigation$Navigation$notify, router, subs),
+					_elm_lang$navigation$Navigation$pushState(_p3._0));
+			case 'Modify':
+				return A2(
+					_elm_lang$core$Task$andThen,
+					A2(_elm_lang$navigation$Navigation$notify, router, subs),
+					_elm_lang$navigation$Navigation$replaceState(_p3._0));
+			case 'Visit':
+				return _elm_lang$navigation$Navigation$setLocation(_p3._0);
+			default:
+				return _elm_lang$navigation$Navigation$reloadPage(_p3._0);
+		}
+	});
+var _elm_lang$navigation$Navigation$killPopWatcher = function (popWatcher) {
+	var _p4 = popWatcher;
+	if (_p4.ctor === 'Normal') {
+		return _elm_lang$core$Process$kill(_p4._0);
+	} else {
+		return A2(
+			_elm_lang$navigation$Navigation_ops['&>'],
+			_elm_lang$core$Process$kill(_p4._0),
+			_elm_lang$core$Process$kill(_p4._1));
+	}
+};
+var _elm_lang$navigation$Navigation$onSelfMsg = F3(
+	function (router, location, state) {
+		return A2(
+			_elm_lang$navigation$Navigation_ops['&>'],
+			A3(_elm_lang$navigation$Navigation$notify, router, state.subs, location),
+			_elm_lang$core$Task$succeed(state));
+	});
+var _elm_lang$navigation$Navigation$subscription = _elm_lang$core$Native_Platform.leaf('Navigation');
+var _elm_lang$navigation$Navigation$command = _elm_lang$core$Native_Platform.leaf('Navigation');
+var _elm_lang$navigation$Navigation$Location = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return function (k) {
+											return {href: a, host: b, hostname: c, protocol: d, origin: e, port_: f, pathname: g, search: h, hash: i, username: j, password: k};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var _elm_lang$navigation$Navigation$State = F2(
+	function (a, b) {
+		return {subs: a, popWatcher: b};
+	});
+var _elm_lang$navigation$Navigation$init = _elm_lang$core$Task$succeed(
+	A2(
+		_elm_lang$navigation$Navigation$State,
+		{ctor: '[]'},
+		_elm_lang$core$Maybe$Nothing));
+var _elm_lang$navigation$Navigation$Reload = function (a) {
+	return {ctor: 'Reload', _0: a};
+};
+var _elm_lang$navigation$Navigation$reload = _elm_lang$navigation$Navigation$command(
+	_elm_lang$navigation$Navigation$Reload(false));
+var _elm_lang$navigation$Navigation$reloadAndSkipCache = _elm_lang$navigation$Navigation$command(
+	_elm_lang$navigation$Navigation$Reload(true));
+var _elm_lang$navigation$Navigation$Visit = function (a) {
+	return {ctor: 'Visit', _0: a};
+};
+var _elm_lang$navigation$Navigation$load = function (url) {
+	return _elm_lang$navigation$Navigation$command(
+		_elm_lang$navigation$Navigation$Visit(url));
+};
+var _elm_lang$navigation$Navigation$Modify = function (a) {
+	return {ctor: 'Modify', _0: a};
+};
+var _elm_lang$navigation$Navigation$modifyUrl = function (url) {
+	return _elm_lang$navigation$Navigation$command(
+		_elm_lang$navigation$Navigation$Modify(url));
+};
+var _elm_lang$navigation$Navigation$New = function (a) {
+	return {ctor: 'New', _0: a};
+};
+var _elm_lang$navigation$Navigation$newUrl = function (url) {
+	return _elm_lang$navigation$Navigation$command(
+		_elm_lang$navigation$Navigation$New(url));
+};
+var _elm_lang$navigation$Navigation$Jump = function (a) {
+	return {ctor: 'Jump', _0: a};
+};
+var _elm_lang$navigation$Navigation$back = function (n) {
+	return _elm_lang$navigation$Navigation$command(
+		_elm_lang$navigation$Navigation$Jump(0 - n));
+};
+var _elm_lang$navigation$Navigation$forward = function (n) {
+	return _elm_lang$navigation$Navigation$command(
+		_elm_lang$navigation$Navigation$Jump(n));
+};
+var _elm_lang$navigation$Navigation$cmdMap = F2(
+	function (_p5, myCmd) {
+		var _p6 = myCmd;
+		switch (_p6.ctor) {
+			case 'Jump':
+				return _elm_lang$navigation$Navigation$Jump(_p6._0);
+			case 'New':
+				return _elm_lang$navigation$Navigation$New(_p6._0);
+			case 'Modify':
+				return _elm_lang$navigation$Navigation$Modify(_p6._0);
+			case 'Visit':
+				return _elm_lang$navigation$Navigation$Visit(_p6._0);
+			default:
+				return _elm_lang$navigation$Navigation$Reload(_p6._0);
+		}
+	});
+var _elm_lang$navigation$Navigation$Monitor = function (a) {
+	return {ctor: 'Monitor', _0: a};
+};
+var _elm_lang$navigation$Navigation$program = F2(
+	function (locationToMessage, stuff) {
+		var init = stuff.init(
+			_elm_lang$navigation$Native_Navigation.getLocation(
+				{ctor: '_Tuple0'}));
+		var subs = function (model) {
+			return _elm_lang$core$Platform_Sub$batch(
+				{
+					ctor: '::',
+					_0: _elm_lang$navigation$Navigation$subscription(
+						_elm_lang$navigation$Navigation$Monitor(locationToMessage)),
+					_1: {
+						ctor: '::',
+						_0: stuff.subscriptions(model),
+						_1: {ctor: '[]'}
+					}
+				});
+		};
+		return _elm_lang$html$Html$program(
+			{init: init, view: stuff.view, update: stuff.update, subscriptions: subs});
+	});
+var _elm_lang$navigation$Navigation$programWithFlags = F2(
+	function (locationToMessage, stuff) {
+		var init = function (flags) {
+			return A2(
+				stuff.init,
+				flags,
+				_elm_lang$navigation$Native_Navigation.getLocation(
+					{ctor: '_Tuple0'}));
+		};
+		var subs = function (model) {
+			return _elm_lang$core$Platform_Sub$batch(
+				{
+					ctor: '::',
+					_0: _elm_lang$navigation$Navigation$subscription(
+						_elm_lang$navigation$Navigation$Monitor(locationToMessage)),
+					_1: {
+						ctor: '::',
+						_0: stuff.subscriptions(model),
+						_1: {ctor: '[]'}
+					}
+				});
+		};
+		return _elm_lang$html$Html$programWithFlags(
+			{init: init, view: stuff.view, update: stuff.update, subscriptions: subs});
+	});
+var _elm_lang$navigation$Navigation$subMap = F2(
+	function (func, _p7) {
+		var _p8 = _p7;
+		return _elm_lang$navigation$Navigation$Monitor(
+			function (_p9) {
+				return func(
+					_p8._0(_p9));
+			});
+	});
+var _elm_lang$navigation$Navigation$InternetExplorer = F2(
+	function (a, b) {
+		return {ctor: 'InternetExplorer', _0: a, _1: b};
+	});
+var _elm_lang$navigation$Navigation$Normal = function (a) {
+	return {ctor: 'Normal', _0: a};
+};
+var _elm_lang$navigation$Navigation$spawnPopWatcher = function (router) {
+	var reportLocation = function (_p10) {
+		return A2(
+			_elm_lang$core$Platform$sendToSelf,
+			router,
+			_elm_lang$navigation$Native_Navigation.getLocation(
+				{ctor: '_Tuple0'}));
+	};
+	return _elm_lang$navigation$Native_Navigation.isInternetExplorer11(
+		{ctor: '_Tuple0'}) ? A3(
+		_elm_lang$core$Task$map2,
+		_elm_lang$navigation$Navigation$InternetExplorer,
+		_elm_lang$core$Process$spawn(
+			A3(_elm_lang$dom$Dom_LowLevel$onWindow, 'popstate', _elm_lang$core$Json_Decode$value, reportLocation)),
+		_elm_lang$core$Process$spawn(
+			A3(_elm_lang$dom$Dom_LowLevel$onWindow, 'hashchange', _elm_lang$core$Json_Decode$value, reportLocation))) : A2(
+		_elm_lang$core$Task$map,
+		_elm_lang$navigation$Navigation$Normal,
+		_elm_lang$core$Process$spawn(
+			A3(_elm_lang$dom$Dom_LowLevel$onWindow, 'popstate', _elm_lang$core$Json_Decode$value, reportLocation)));
+};
+var _elm_lang$navigation$Navigation$onEffects = F4(
+	function (router, cmds, subs, _p11) {
+		var _p12 = _p11;
+		var _p15 = _p12.popWatcher;
+		var stepState = function () {
+			var _p13 = {ctor: '_Tuple2', _0: subs, _1: _p15};
+			_v6_2:
+			do {
+				if (_p13._0.ctor === '[]') {
+					if (_p13._1.ctor === 'Just') {
+						return A2(
+							_elm_lang$navigation$Navigation_ops['&>'],
+							_elm_lang$navigation$Navigation$killPopWatcher(_p13._1._0),
+							_elm_lang$core$Task$succeed(
+								A2(_elm_lang$navigation$Navigation$State, subs, _elm_lang$core$Maybe$Nothing)));
+					} else {
+						break _v6_2;
+					}
+				} else {
+					if (_p13._1.ctor === 'Nothing') {
+						return A2(
+							_elm_lang$core$Task$map,
+							function (_p14) {
+								return A2(
+									_elm_lang$navigation$Navigation$State,
+									subs,
+									_elm_lang$core$Maybe$Just(_p14));
+							},
+							_elm_lang$navigation$Navigation$spawnPopWatcher(router));
+					} else {
+						break _v6_2;
+					}
+				}
+			} while(false);
+			return _elm_lang$core$Task$succeed(
+				A2(_elm_lang$navigation$Navigation$State, subs, _p15));
+		}();
+		return A2(
+			_elm_lang$navigation$Navigation_ops['&>'],
+			_elm_lang$core$Task$sequence(
+				A2(
+					_elm_lang$core$List$map,
+					A2(_elm_lang$navigation$Navigation$cmdHelp, router, subs),
+					cmds)),
+			stepState);
+	});
+_elm_lang$core$Native_Platform.effectManagers['Navigation'] = {pkg: 'elm-lang/navigation', init: _elm_lang$navigation$Navigation$init, onEffects: _elm_lang$navigation$Navigation$onEffects, onSelfMsg: _elm_lang$navigation$Navigation$onSelfMsg, tag: 'fx', cmdMap: _elm_lang$navigation$Navigation$cmdMap, subMap: _elm_lang$navigation$Navigation$subMap};
+
 var _evancz$elm_markdown$Native_Markdown = function() {
 
 
@@ -9058,6 +9650,9 @@ var _evancz$elm_markdown$Markdown$Options = F4(
 		return {githubFlavored: a, defaultHighlighting: b, sanitize: c, smartypants: d};
 	});
 
+var _lfarroco$elm_blog$Main$strField = function (key) {
+	return A2(_elm_lang$core$Json_Decode$field, key, _elm_lang$core$Json_Decode$string);
+};
 var _lfarroco$elm_blog$Main$decodePostsUrls = _elm_lang$core$Json_Decode$list(
 	A2(
 		_elm_lang$core$Json_Decode$at,
@@ -9092,19 +9687,11 @@ var _lfarroco$elm_blog$Main$articles = function (_p1) {
 };
 var _lfarroco$elm_blog$Main$menuItems = {
 	ctor: '::',
-	_0: {ctor: '_Tuple2', _0: '#blog', _1: 'Blog'},
+	_0: {ctor: '_Tuple2', _0: '#home', _1: ''},
 	_1: {
 		ctor: '::',
-		_0: {ctor: '_Tuple2', _0: '#files', _1: 'Arquivos'},
-		_1: {
-			ctor: '::',
-			_0: {ctor: '_Tuple2', _0: '#about', _1: 'Sobre'},
-			_1: {
-				ctor: '::',
-				_0: {ctor: '_Tuple2', _0: '#contact', _1: 'Contato'},
-				_1: {ctor: '[]'}
-			}
-		}
+		_0: {ctor: '_Tuple2', _0: '#about', _1: 'About'},
+		_1: {ctor: '[]'}
 	}
 };
 var _lfarroco$elm_blog$Main$menu = function () {
@@ -9196,92 +9783,123 @@ var _lfarroco$elm_blog$Main$view = function (model) {
 							_0: _lfarroco$elm_blog$Main$articles(model.posts),
 							_1: {ctor: '[]'}
 						}),
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html$text(
+							_elm_lang$core$Basics$toString(model.location)),
+						_1: {ctor: '[]'}
+					}
 				}
 			}
 		});
 };
 var _lfarroco$elm_blog$Main$config = 'blog-config.json';
-var _lfarroco$elm_blog$Main$branch = 'master';
-var _lfarroco$elm_blog$Main$posts = 'posts';
-var _lfarroco$elm_blog$Main$contents = 'contents';
 var _lfarroco$elm_blog$Main$baseUrl = 'https://api.github.com/repos/lfarroco/elm-blog';
 var _lfarroco$elm_blog$Main$rawUrl = 'https://raw.githubusercontent.com';
-var _lfarroco$elm_blog$Main$repo = 'elm-blog';
-var _lfarroco$elm_blog$Main$author = 'lfarroco';
 var _lfarroco$elm_blog$Main$toUrl = _elm_lang$core$String$join('/');
-var _lfarroco$elm_blog$Main$postsUrl = _lfarroco$elm_blog$Main$toUrl(
-	{
-		ctor: '::',
-		_0: _lfarroco$elm_blog$Main$baseUrl,
-		_1: {
+var _lfarroco$elm_blog$Main$postsUrl = function (source) {
+	return _lfarroco$elm_blog$Main$toUrl(
+		{
 			ctor: '::',
-			_0: _lfarroco$elm_blog$Main$contents,
+			_0: _lfarroco$elm_blog$Main$baseUrl,
 			_1: {
 				ctor: '::',
-				_0: _lfarroco$elm_blog$Main$posts,
-				_1: {ctor: '[]'}
-			}
-		}
-	});
-var _lfarroco$elm_blog$Main$configUrl = _lfarroco$elm_blog$Main$toUrl(
-	{
-		ctor: '::',
-		_0: _lfarroco$elm_blog$Main$rawUrl,
-		_1: {
-			ctor: '::',
-			_0: _lfarroco$elm_blog$Main$author,
-			_1: {
-				ctor: '::',
-				_0: _lfarroco$elm_blog$Main$repo,
+				_0: 'contents',
 				_1: {
 					ctor: '::',
-					_0: _lfarroco$elm_blog$Main$branch,
+					_0: source.postsFolder,
+					_1: {ctor: '[]'}
+				}
+			}
+		});
+};
+var _lfarroco$elm_blog$Main$configUrl = function (source) {
+	return _lfarroco$elm_blog$Main$toUrl(
+		{
+			ctor: '::',
+			_0: _lfarroco$elm_blog$Main$rawUrl,
+			_1: {
+				ctor: '::',
+				_0: source.user,
+				_1: {
+					ctor: '::',
+					_0: source.repo,
 					_1: {
 						ctor: '::',
-						_0: _lfarroco$elm_blog$Main$config,
-						_1: {ctor: '[]'}
+						_0: source.branch,
+						_1: {
+							ctor: '::',
+							_0: _lfarroco$elm_blog$Main$config,
+							_1: {ctor: '[]'}
+						}
 					}
 				}
 			}
-		}
+		});
+};
+var _lfarroco$elm_blog$Main$Model = F6(
+	function (a, b, c, d, e, f) {
+		return {urls: a, posts: b, error: c, config: d, source: e, location: f};
 	});
-var _lfarroco$elm_blog$Main$Model = F4(
+var _lfarroco$elm_blog$Main$Config = F4(
 	function (a, b, c, d) {
-		return {urls: a, posts: b, error: c, config: d};
+		return {title: a, postsFolder: b, postsPerPage: c, menuItems: d};
 	});
-var _lfarroco$elm_blog$Main$Config = F3(
-	function (a, b, c) {
-		return {title: a, postsFolder: b, postsPerPage: c};
+var _lfarroco$elm_blog$Main$Source = F4(
+	function (a, b, c, d) {
+		return {user: a, repo: b, branch: c, postsFolder: d};
 	});
-var _lfarroco$elm_blog$Main$decodeConfig = A4(
-	_elm_lang$core$Json_Decode$map3,
+var _lfarroco$elm_blog$Main$MenuItem = F2(
+	function (a, b) {
+		return {slug: a, label: b};
+	});
+var _lfarroco$elm_blog$Main$menuItemDecoder = A3(
+	_elm_lang$core$Json_Decode$map2,
+	_lfarroco$elm_blog$Main$MenuItem,
+	_lfarroco$elm_blog$Main$strField('slug'),
+	_lfarroco$elm_blog$Main$strField('label'));
+var _lfarroco$elm_blog$Main$decodeConfig = A5(
+	_elm_lang$core$Json_Decode$map4,
 	_lfarroco$elm_blog$Main$Config,
-	A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string),
-	A2(_elm_lang$core$Json_Decode$field, 'posts-folder', _elm_lang$core$Json_Decode$string),
-	A2(_elm_lang$core$Json_Decode$field, 'posts-per-page', _elm_lang$core$Json_Decode$int));
+	_lfarroco$elm_blog$Main$strField('title'),
+	_lfarroco$elm_blog$Main$strField('posts-folder'),
+	A2(_elm_lang$core$Json_Decode$field, 'posts-per-page', _elm_lang$core$Json_Decode$int),
+	A2(
+		_elm_lang$core$Json_Decode$field,
+		'menu-items',
+		_elm_lang$core$Json_Decode$list(_lfarroco$elm_blog$Main$menuItemDecoder)));
 var _lfarroco$elm_blog$Main$GetConfig = function (a) {
 	return {ctor: 'GetConfig', _0: a};
 };
-var _lfarroco$elm_blog$Main$getConfig = A2(
-	_elm_lang$http$Http$send,
-	_lfarroco$elm_blog$Main$GetConfig,
-	A2(_elm_lang$http$Http$get, _lfarroco$elm_blog$Main$configUrl, _lfarroco$elm_blog$Main$decodeConfig));
-var _lfarroco$elm_blog$Main$init = {
-	ctor: '_Tuple2',
-	_0: A4(
-		_lfarroco$elm_blog$Main$Model,
-		{ctor: '[]'},
-		{ctor: '[]'},
-		_elm_lang$core$Maybe$Nothing,
-		_elm_lang$core$Maybe$Nothing),
-	_1: _elm_lang$core$Platform_Cmd$batch(
-		{
-			ctor: '::',
-			_0: _lfarroco$elm_blog$Main$getConfig,
-			_1: {ctor: '[]'}
-		})
+var _lfarroco$elm_blog$Main$getConfig = function (source) {
+	return A2(
+		_elm_lang$http$Http$send,
+		_lfarroco$elm_blog$Main$GetConfig,
+		A2(
+			_elm_lang$http$Http$get,
+			_lfarroco$elm_blog$Main$configUrl(source),
+			_lfarroco$elm_blog$Main$decodeConfig));
 };
+var _lfarroco$elm_blog$Main$init = F2(
+	function (source, location) {
+		return {
+			ctor: '_Tuple2',
+			_0: {
+				urls: {ctor: '[]'},
+				posts: {ctor: '[]'},
+				error: _elm_lang$core$Maybe$Nothing,
+				config: _elm_lang$core$Maybe$Nothing,
+				source: source,
+				location: location
+			},
+			_1: _elm_lang$core$Platform_Cmd$batch(
+				{
+					ctor: '::',
+					_0: _lfarroco$elm_blog$Main$getConfig(source),
+					_1: {ctor: '[]'}
+				})
+		};
+	});
 var _lfarroco$elm_blog$Main$GotPost = function (a) {
 	return {ctor: 'GotPost', _0: a};
 };
@@ -9294,19 +9912,27 @@ var _lfarroco$elm_blog$Main$getPost = function (url) {
 var _lfarroco$elm_blog$Main$GetPosts = function (a) {
 	return {ctor: 'GetPosts', _0: a};
 };
-var _lfarroco$elm_blog$Main$getBlogPosts = function () {
-	var url = _lfarroco$elm_blog$Main$postsUrl;
+var _lfarroco$elm_blog$Main$getBlogPosts = function (source) {
+	var url = _lfarroco$elm_blog$Main$postsUrl(source);
 	return A2(
 		_elm_lang$http$Http$send,
 		_lfarroco$elm_blog$Main$GetPosts,
 		A2(_elm_lang$http$Http$get, url, _lfarroco$elm_blog$Main$decodePostsUrls));
-}();
+};
 var _lfarroco$elm_blog$Main$update = F2(
 	function (msg, model) {
 		var _p7 = msg;
 		switch (_p7.ctor) {
 			case 'NoOp':
 				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			case 'UrlChange':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{location: _p7._0}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
 			case 'GetPosts':
 				if (_p7._0.ctor === 'Ok') {
 					var _p9 = _p7._0._0;
@@ -9382,7 +10008,7 @@ var _lfarroco$elm_blog$Main$update = F2(
 							{
 								config: _elm_lang$core$Maybe$Just(_p7._0._0)
 							}),
-						_1: _lfarroco$elm_blog$Main$getBlogPosts
+						_1: _lfarroco$elm_blog$Main$getBlogPosts(model.source)
 					};
 				} else {
 					return {
@@ -9397,8 +10023,35 @@ var _lfarroco$elm_blog$Main$update = F2(
 				}
 		}
 	});
-var _lfarroco$elm_blog$Main$main = _elm_lang$html$Html$program(
-	{init: _lfarroco$elm_blog$Main$init, view: _lfarroco$elm_blog$Main$view, update: _lfarroco$elm_blog$Main$update, subscriptions: _lfarroco$elm_blog$Main$subscriptions})();
+var _lfarroco$elm_blog$Main$UrlChange = function (a) {
+	return {ctor: 'UrlChange', _0: a};
+};
+var _lfarroco$elm_blog$Main$main = A2(
+	_elm_lang$navigation$Navigation$programWithFlags,
+	_lfarroco$elm_blog$Main$UrlChange,
+	{init: _lfarroco$elm_blog$Main$init, view: _lfarroco$elm_blog$Main$view, update: _lfarroco$elm_blog$Main$update, subscriptions: _lfarroco$elm_blog$Main$subscriptions})(
+	A2(
+		_elm_lang$core$Json_Decode$andThen,
+		function (branch) {
+			return A2(
+				_elm_lang$core$Json_Decode$andThen,
+				function (postsFolder) {
+					return A2(
+						_elm_lang$core$Json_Decode$andThen,
+						function (repo) {
+							return A2(
+								_elm_lang$core$Json_Decode$andThen,
+								function (user) {
+									return _elm_lang$core$Json_Decode$succeed(
+										{branch: branch, postsFolder: postsFolder, repo: repo, user: user});
+								},
+								A2(_elm_lang$core$Json_Decode$field, 'user', _elm_lang$core$Json_Decode$string));
+						},
+						A2(_elm_lang$core$Json_Decode$field, 'repo', _elm_lang$core$Json_Decode$string));
+				},
+				A2(_elm_lang$core$Json_Decode$field, 'postsFolder', _elm_lang$core$Json_Decode$string));
+		},
+		A2(_elm_lang$core$Json_Decode$field, 'branch', _elm_lang$core$Json_Decode$string)));
 var _lfarroco$elm_blog$Main$NoOp = {ctor: 'NoOp'};
 
 var Elm = {};

@@ -1,5 +1,9 @@
 {
     "title" : "Leonardo Farroco",
     "posts-folder" : "posts",
-    "posts-per-page" : 10
+    "posts-per-page" : 10,
+    "menu-items" : [
+        {"slug": "", "label":"Home"},
+        {"slug": "about", "label":"About"}
+    ]
 }

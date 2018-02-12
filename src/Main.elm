@@ -5,36 +5,46 @@ import Html.Attributes as Attrs
 import Http
 import Json.Decode as Decode
 import Markdown
-
+import Navigation
 
 type alias Model =
     { urls : List String
     , posts : List String
     , error : Maybe Http.Error
     , config : Maybe Config
+    , source : Source
+    , location : Navigation.Location
     }
 
 
 type Msg
     = NoOp
+    | UrlChange Navigation.Location
     | GetPosts (Result Http.Error (List String))
     | GotPost (Result Http.Error String)
     | GetConfig (Result Http.Error Config)
 
 
+
+type alias Config =
+    { title : String
+    , postsFolder : String
+    , postsPerPage : Int
+    , menuItems : List MenuItem
+    }
+
+
+type alias Source =
+    { user : String
+    , repo : String
+    , branch : String
+    , postsFolder : String
+    }
+
+
 toUrl : List String -> String
 toUrl =
     String.join "/"
-
-
-author : String
-author =
-    "lfarroco"
-
-
-repo : String
-repo =
-    "elm-blog"
 
 
 rawUrl : String
@@ -47,34 +57,20 @@ baseUrl =
     "https://api.github.com/repos/lfarroco/elm-blog"
 
 
-contents : String
-contents =
-    "contents"
-
-
-posts : String
-posts =
-    "posts"
-
-
-branch : String
-branch =
-    "master"
-
-
 config : String
 config =
     "blog-config.json"
 
 
-postsUrl : String
-postsUrl =
-    toUrl [ baseUrl, contents, posts ]
+postsUrl : Source -> String
+postsUrl source =
+    toUrl [ baseUrl, "contents", source.postsFolder ]
 
 
-configUrl : String
-configUrl =
-    toUrl [ rawUrl, author, repo, branch, config ]
+configUrl : Source -> String
+configUrl source =
+    toUrl [ rawUrl, source.user, source.repo, source.branch, config ]
+
 
 maybePrint : (a -> Html.Html msg) -> Maybe a -> Html.Html msg
 maybePrint fn a =
@@ -85,10 +81,9 @@ maybePrint fn a =
         Just val ->
             fn val
 
-
-main : Program Never Model Msg
+main : Program Source Model Msg
 main =
-    Html.program
+    Navigation.programWithFlags UrlChange
         { init = init
         , view = view
         , update = update
@@ -96,9 +91,17 @@ main =
         }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model [] [] Nothing Nothing, Cmd.batch [ getConfig ] )
+init : Source -> Navigation.Location -> ( Model, Cmd Msg )
+init source location =
+    ( { urls = []
+      , posts = []
+      , error = Nothing
+      , config = Nothing
+      , source = source
+      , location = location
+      }
+    , Cmd.batch [ getConfig source ]
+    )
 
 
 view : Model -> Html.Html msg
@@ -108,6 +111,8 @@ view model =
         , menu menuItems
         , Html.main_ []
             [ articles model.posts ]
+
+        , toString model.location |> Html.text
         ]
 
 
@@ -140,10 +145,8 @@ menu =
 
 menuItems : List ( String, String )
 menuItems =
-    [ ( "#blog", "Blog" )
-    , ( "#files", "Arquivos" )
-    , ( "#about", "Sobre" )
-    , ( "#contact", "Contato" )
+    [ ( "#home", "" )
+    , ( "#about", "About" )
     ]
 
 
@@ -164,6 +167,8 @@ update msg model =
     case msg of
         NoOp ->
             ( model, Cmd.none )
+        UrlChange location ->
+            ({ model | location = location }, Cmd.none)
 
         GetPosts (Ok urls) ->
             let
@@ -196,7 +201,7 @@ update msg model =
             ( { model | error = Just err }, Cmd.none )
 
         GetConfig (Ok config) ->
-            ( { model | config = Just config }, getBlogPosts )
+            ( { model | config = Just config }, getBlogPosts model.source )
 
         GetConfig (Err err) ->
             ( { model | error = Just err }, Cmd.none )
@@ -207,11 +212,11 @@ subscriptions model =
     Sub.none
 
 
-getBlogPosts : Cmd Msg
-getBlogPosts =
+getBlogPosts : Source -> Cmd Msg
+getBlogPosts source =
     let
         url =
-            postsUrl
+            postsUrl source
     in
         Http.send GetPosts (Http.get url decodePostsUrls)
 
@@ -226,21 +231,33 @@ getPost url =
     Http.send GotPost (Http.getString url)
 
 
-getConfig : Cmd Msg
-getConfig =
-    Http.send GetConfig (Http.get configUrl decodeConfig)
+getConfig : Source -> Cmd Msg
+getConfig source =
+    Http.send GetConfig (Http.get (configUrl source) decodeConfig)
 
 
 decodeConfig : Decode.Decoder Config
 decodeConfig =
-    Decode.map3 Config
-        (Decode.field "title" Decode.string)
-        (Decode.field "posts-folder" Decode.string)
+    Decode.map4 Config
+        (strField "title")
+        (strField "posts-folder")
         (Decode.field "posts-per-page" Decode.int)
+        (Decode.field "menu-items" <| Decode.list menuItemDecoder)
 
 
-type alias Config =
-    { title : String
-    , postsFolder : String
-    , postsPerPage : Int
+menuItemDecoder : Decode.Decoder MenuItem
+menuItemDecoder =
+    Decode.map2 MenuItem
+        (strField "slug")
+        (strField "label")
+
+
+strField : String -> Decode.Decoder String
+strField key =
+    (Decode.field key Decode.string)
+
+
+type alias MenuItem =
+    { slug : String
+    , label : String
     }
