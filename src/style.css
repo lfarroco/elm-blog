@@ -54,16 +54,18 @@ ul li:last-child {
 }
 
 nav {
-    padding-bottom: 20px;
     border-bottom: #ccc solid 1px;
+    background: #444;
 }
 
 nav a{
-    color: #444;
+    color: #fff;
     text-decoration: none;
+    padding: 10px;
 }
 nav a:hover{
-    color: #000;
+    color: #444;
+    background: #fff;
     text-decoration: underline;
 }
 

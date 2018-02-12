@@ -9149,17 +9149,28 @@ var _lfarroco$elm_blog$Main$menu = function () {
 			A2(_elm_lang$core$List$map, item, _p5));
 	};
 }();
-var _lfarroco$elm_blog$Main$title = A2(
-	_elm_lang$html$Html$h1,
-	{
-		ctor: '::',
-		_0: _elm_lang$html$Html_Attributes$class('website-title'),
-		_1: {ctor: '[]'}
-	},
-	{
-		ctor: '::',
-		_0: _elm_lang$html$Html$text('Leonardo Farroco'),
-		_1: {ctor: '[]'}
+var _lfarroco$elm_blog$Main$title = function (config) {
+	return A2(
+		_elm_lang$html$Html$h1,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$class('website-title'),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text(config.title),
+			_1: {ctor: '[]'}
+		});
+};
+var _lfarroco$elm_blog$Main$maybePrint = F2(
+	function (fn, a) {
+		var _p6 = a;
+		if (_p6.ctor === 'Nothing') {
+			return _elm_lang$html$Html$text('');
+		} else {
+			return fn(_p6._0);
+		}
 	});
 var _lfarroco$elm_blog$Main$view = function (model) {
 	return A2(
@@ -9171,7 +9182,7 @@ var _lfarroco$elm_blog$Main$view = function (model) {
 		},
 		{
 			ctor: '::',
-			_0: _lfarroco$elm_blog$Main$title,
+			_0: A2(_lfarroco$elm_blog$Main$maybePrint, _lfarroco$elm_blog$Main$title, model.config),
 			_1: {
 				ctor: '::',
 				_0: _lfarroco$elm_blog$Main$menu(_lfarroco$elm_blog$Main$menuItems),
@@ -9190,11 +9201,87 @@ var _lfarroco$elm_blog$Main$view = function (model) {
 			}
 		});
 };
-var _lfarroco$elm_blog$Main$postsUrl = 'https://api.github.com/repos/lfarroco/elm-blog/contents/posts';
-var _lfarroco$elm_blog$Main$Model = F3(
-	function (a, b, c) {
-		return {urls: a, posts: b, error: c};
+var _lfarroco$elm_blog$Main$config = 'blog-config.json';
+var _lfarroco$elm_blog$Main$branch = 'master';
+var _lfarroco$elm_blog$Main$posts = 'posts';
+var _lfarroco$elm_blog$Main$contents = 'contents';
+var _lfarroco$elm_blog$Main$baseUrl = 'https://api.github.com/repos/lfarroco/elm-blog';
+var _lfarroco$elm_blog$Main$rawUrl = 'https://raw.githubusercontent.com';
+var _lfarroco$elm_blog$Main$repo = 'elm-blog';
+var _lfarroco$elm_blog$Main$author = 'lfarroco';
+var _lfarroco$elm_blog$Main$toUrl = _elm_lang$core$String$join('/');
+var _lfarroco$elm_blog$Main$postsUrl = _lfarroco$elm_blog$Main$toUrl(
+	{
+		ctor: '::',
+		_0: _lfarroco$elm_blog$Main$baseUrl,
+		_1: {
+			ctor: '::',
+			_0: _lfarroco$elm_blog$Main$contents,
+			_1: {
+				ctor: '::',
+				_0: _lfarroco$elm_blog$Main$posts,
+				_1: {ctor: '[]'}
+			}
+		}
 	});
+var _lfarroco$elm_blog$Main$configUrl = _lfarroco$elm_blog$Main$toUrl(
+	{
+		ctor: '::',
+		_0: _lfarroco$elm_blog$Main$rawUrl,
+		_1: {
+			ctor: '::',
+			_0: _lfarroco$elm_blog$Main$author,
+			_1: {
+				ctor: '::',
+				_0: _lfarroco$elm_blog$Main$repo,
+				_1: {
+					ctor: '::',
+					_0: _lfarroco$elm_blog$Main$branch,
+					_1: {
+						ctor: '::',
+						_0: _lfarroco$elm_blog$Main$config,
+						_1: {ctor: '[]'}
+					}
+				}
+			}
+		}
+	});
+var _lfarroco$elm_blog$Main$Model = F4(
+	function (a, b, c, d) {
+		return {urls: a, posts: b, error: c, config: d};
+	});
+var _lfarroco$elm_blog$Main$Config = F3(
+	function (a, b, c) {
+		return {title: a, postsFolder: b, postsPerPage: c};
+	});
+var _lfarroco$elm_blog$Main$decodeConfig = A4(
+	_elm_lang$core$Json_Decode$map3,
+	_lfarroco$elm_blog$Main$Config,
+	A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string),
+	A2(_elm_lang$core$Json_Decode$field, 'posts-folder', _elm_lang$core$Json_Decode$string),
+	A2(_elm_lang$core$Json_Decode$field, 'posts-per-page', _elm_lang$core$Json_Decode$int));
+var _lfarroco$elm_blog$Main$GetConfig = function (a) {
+	return {ctor: 'GetConfig', _0: a};
+};
+var _lfarroco$elm_blog$Main$getConfig = A2(
+	_elm_lang$http$Http$send,
+	_lfarroco$elm_blog$Main$GetConfig,
+	A2(_elm_lang$http$Http$get, _lfarroco$elm_blog$Main$configUrl, _lfarroco$elm_blog$Main$decodeConfig));
+var _lfarroco$elm_blog$Main$init = {
+	ctor: '_Tuple2',
+	_0: A4(
+		_lfarroco$elm_blog$Main$Model,
+		{ctor: '[]'},
+		{ctor: '[]'},
+		_elm_lang$core$Maybe$Nothing,
+		_elm_lang$core$Maybe$Nothing),
+	_1: _elm_lang$core$Platform_Cmd$batch(
+		{
+			ctor: '::',
+			_0: _lfarroco$elm_blog$Main$getConfig,
+			_1: {ctor: '[]'}
+		})
+};
 var _lfarroco$elm_blog$Main$GotPost = function (a) {
 	return {ctor: 'GotPost', _0: a};
 };
@@ -9204,26 +9291,36 @@ var _lfarroco$elm_blog$Main$getPost = function (url) {
 		_lfarroco$elm_blog$Main$GotPost,
 		_elm_lang$http$Http$getString(url));
 };
+var _lfarroco$elm_blog$Main$GetPosts = function (a) {
+	return {ctor: 'GetPosts', _0: a};
+};
+var _lfarroco$elm_blog$Main$getBlogPosts = function () {
+	var url = _lfarroco$elm_blog$Main$postsUrl;
+	return A2(
+		_elm_lang$http$Http$send,
+		_lfarroco$elm_blog$Main$GetPosts,
+		A2(_elm_lang$http$Http$get, url, _lfarroco$elm_blog$Main$decodePostsUrls));
+}();
 var _lfarroco$elm_blog$Main$update = F2(
 	function (msg, model) {
-		var _p6 = msg;
-		switch (_p6.ctor) {
+		var _p7 = msg;
+		switch (_p7.ctor) {
 			case 'NoOp':
 				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'GetPosts':
-				if (_p6._0.ctor === 'Ok') {
-					var _p8 = _p6._0._0;
-					var head = _elm_lang$core$List$head(_p8);
-					var _p7 = head;
-					if (_p7.ctor === 'Just') {
+				if (_p7._0.ctor === 'Ok') {
+					var _p9 = _p7._0._0;
+					var head = _elm_lang$core$List$head(_p9);
+					var _p8 = head;
+					if (_p8.ctor === 'Just') {
 						return {
 							ctor: '_Tuple2',
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
 								{
-									urls: A2(_elm_lang$core$List$drop, 1, _p8)
+									urls: A2(_elm_lang$core$List$drop, 1, _p9)
 								}),
-							_1: _lfarroco$elm_blog$Main$getPost(_p7._0)
+							_1: _lfarroco$elm_blog$Main$getPost(_p8._0)
 						};
 					} else {
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
@@ -9234,14 +9331,13 @@ var _lfarroco$elm_blog$Main$update = F2(
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								error: _elm_lang$core$Maybe$Just(_p6._0._0)
+								error: _elm_lang$core$Maybe$Just(_p7._0._0)
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
-			default:
-				var _p9 = _p6._0;
-				if (_p9.ctor === 'Ok') {
+			case 'GotPost':
+				if (_p7._0.ctor === 'Ok') {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
@@ -9253,7 +9349,7 @@ var _lfarroco$elm_blog$Main$update = F2(
 									model.posts,
 									{
 										ctor: '::',
-										_0: _p9._0,
+										_0: _p7._0._0,
 										_1: {ctor: '[]'}
 									})
 							}),
@@ -9272,32 +9368,35 @@ var _lfarroco$elm_blog$Main$update = F2(
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								error: _elm_lang$core$Maybe$Just(_p9._0)
+								error: _elm_lang$core$Maybe$Just(_p7._0._0)
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
+			default:
+				if (_p7._0.ctor === 'Ok') {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								config: _elm_lang$core$Maybe$Just(_p7._0._0)
+							}),
+						_1: _lfarroco$elm_blog$Main$getBlogPosts
+					};
+				} else {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								error: _elm_lang$core$Maybe$Just(_p7._0._0)
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
 		}
 	});
-var _lfarroco$elm_blog$Main$GetPosts = function (a) {
-	return {ctor: 'GetPosts', _0: a};
-};
-var _lfarroco$elm_blog$Main$getBlogPosts = function () {
-	var url = _lfarroco$elm_blog$Main$postsUrl;
-	return A2(
-		_elm_lang$http$Http$send,
-		_lfarroco$elm_blog$Main$GetPosts,
-		A2(_elm_lang$http$Http$get, url, _lfarroco$elm_blog$Main$decodePostsUrls));
-}();
-var _lfarroco$elm_blog$Main$init = {
-	ctor: '_Tuple2',
-	_0: A3(
-		_lfarroco$elm_blog$Main$Model,
-		{ctor: '[]'},
-		{ctor: '[]'},
-		_elm_lang$core$Maybe$Nothing),
-	_1: _lfarroco$elm_blog$Main$getBlogPosts
-};
 var _lfarroco$elm_blog$Main$main = _elm_lang$html$Html$program(
 	{init: _lfarroco$elm_blog$Main$init, view: _lfarroco$elm_blog$Main$view, update: _lfarroco$elm_blog$Main$update, subscriptions: _lfarroco$elm_blog$Main$subscriptions})();
 var _lfarroco$elm_blog$Main$NoOp = {ctor: 'NoOp'};

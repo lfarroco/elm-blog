@@ -11,6 +11,7 @@ type alias Model =
     { urls : List String
     , posts : List String
     , error : Maybe Http.Error
+    , config : Maybe Config
     }
 
 
@@ -75,6 +76,15 @@ configUrl : String
 configUrl =
     toUrl [ rawUrl, author, repo, branch, config ]
 
+maybePrint : (a -> Html.Html msg) -> Maybe a -> Html.Html msg
+maybePrint fn a =
+    case a of
+        Nothing ->
+            Html.text ""
+
+        Just val ->
+            fn val
+
 
 main : Program Never Model Msg
 main =
@@ -88,23 +98,23 @@ main =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model [] [] Nothing, Cmd.batch [ getBlogPosts, getConfig ] )
+    ( Model [] [] Nothing Nothing, Cmd.batch [ getConfig ] )
 
 
-view : { a | posts : List String } -> Html.Html msg
+view : Model -> Html.Html msg
 view model =
     Html.div [ Attrs.class "container" ]
-        [ title
+        [ maybePrint title model.config
         , menu menuItems
         , Html.main_ []
             [ articles model.posts ]
         ]
 
 
-title : Html.Html msg
-title =
+title : Config -> Html.Html msg
+title config =
     Html.h1 [ Attrs.class "website-title" ]
-        [ Html.text "Leonardo Farroco"
+        [ Html.text config.title
         ]
 
 
@@ -186,7 +196,7 @@ update msg model =
             ( { model | error = Just err }, Cmd.none )
 
         GetConfig (Ok config) ->
-            ( model, Cmd.none )
+            ( { model | config = Just config }, getBlogPosts )
 
         GetConfig (Err err) ->
             ( { model | error = Just err }, Cmd.none )
