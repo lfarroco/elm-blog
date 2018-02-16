@@ -4,16 +4,18 @@ import Html
 import Html.Attributes as Attrs
 import Http
 import Json.Decode as Decode
-import Markdown
 import Navigation
+import UrlParser as Url exposing ((</>), s)
+import Pages.ListPosts
+
 
 type alias Model =
     { urls : List String
     , posts : List String
-    , error : Maybe Http.Error
+    , errors : List Http.Error
     , config : Maybe Config
     , source : Source
-    , location : Navigation.Location
+    , route : Maybe Route
     }
 
 
@@ -23,7 +25,6 @@ type Msg
     | GetPosts (Result Http.Error (List String))
     | GotPost (Result Http.Error String)
     | GetConfig (Result Http.Error Config)
-
 
 
 type alias Config =
@@ -42,6 +43,12 @@ type alias Source =
     }
 
 
+type Route
+    = ListPosts Int
+    | ViewPost String
+    | ViewPage String
+
+
 toUrl : List String -> String
 toUrl =
     String.join "/"
@@ -54,7 +61,7 @@ rawUrl =
 
 baseUrl : String
 baseUrl =
-    "https://api.github.com/repos/lfarroco/elm-blog"
+    "https://api.github.com/repos"
 
 
 config : String
@@ -64,7 +71,7 @@ config =
 
 postsUrl : Source -> String
 postsUrl source =
-    toUrl [ baseUrl, "contents", source.postsFolder ]
+    toUrl [ baseUrl, source.user, source.repo, "contents", source.postsFolder ]
 
 
 configUrl : Source -> String
@@ -81,6 +88,7 @@ maybePrint fn a =
         Just val ->
             fn val
 
+
 main : Program Source Model Msg
 main =
     Navigation.programWithFlags UrlChange
@@ -95,10 +103,10 @@ init : Source -> Navigation.Location -> ( Model, Cmd Msg )
 init source location =
     ( { urls = []
       , posts = []
-      , error = Nothing
+      , errors = []
       , config = Nothing
       , source = source
-      , location = location
+      , route = Url.parseHash parseRoute location
       }
     , Cmd.batch [ getConfig source ]
     )
@@ -106,14 +114,29 @@ init source location =
 
 view : Model -> Html.Html msg
 view model =
-    Html.div [ Attrs.class "container" ]
-        [ maybePrint title model.config
-        , menu menuItems
-        , Html.main_ []
-            [ articles model.posts ]
+    [ .config >> maybePrint title
+    , .errors >> errors
+    , .config >> maybePrint (.menuItems >> menu)
+    , viewRoute
+    , .route >> toString >> Html.text
+    ]
+        |> List.map (\fn -> fn model)
+        |> Html.div [ Attrs.class "container" ]
 
-        , toString model.location |> Html.text
-        ]
+
+viewRoute : Model -> Html.Html msg
+viewRoute model =
+    case model.route of
+        Nothing ->
+            Html.text ""
+
+        Just route ->
+            case route of
+                ListPosts page ->
+                    Pages.ListPosts.render model.posts page
+
+                _ ->
+                    Html.text ""
 
 
 title : Config -> Html.Html msg
@@ -123,17 +146,39 @@ title config =
         ]
 
 
-menu : List ( String, String ) -> Html.Html msg
+errors : List a -> Html.Html msg
+errors list =
+    List.map viewError list
+        |> Html.div []
+
+
+viewError : a -> Html.Html msg
+viewError err =
+    Html.div []
+        [ Html.text <| toString err
+        ]
+
+
+menu : List MenuItem -> Html.Html msg
 menu =
     let
-        item ( url, str ) =
-            Html.li []
-                [ Html.a
-                    [ Attrs.href url
-                    ]
-                    [ Html.text str
-                    ]
-                ]
+        ifEmpty fn str = 
+          if String.length str < 1 then
+              str
+          else
+              fn str
+
+        item menuItem =
+            let
+                url = ifEmpty ( (++) "#" ) menuItem.slug
+            in
+              Html.li []
+                  [ Html.a
+                      [ Attrs.href url
+                      ]
+                      [ Html.text menuItem.label
+                      ]
+                  ]
 
         nav =
             Html.ul [ Attrs.class "flex-row" ]
@@ -142,69 +187,68 @@ menu =
     in
         List.map item >> nav
 
-
-menuItems : List ( String, String )
-menuItems =
-    [ ( "#home", "" )
-    , ( "#about", "About" )
-    ]
-
-
-articles : List String -> Html.Html msg
-articles =
-    List.map article >> Html.div []
-
-
-article : String -> Html.Html msg
-article =
-    Markdown.toHtml [ Attrs.class "markdown-body" ]
-        >> List.singleton
-        >> Html.article []
+parseRoute : Url.Parser (Route -> c) c
+parseRoute =
+    Url.oneOf
+        [ Url.map (ListPosts 0) Url.top
+        , Url.map ListPosts (Url.s "posts" </> Url.int)
+        , Url.map ViewPost (Url.s "post" </> Url.string)
+        , Url.map ViewPage (Url.s "page" </> Url.string)
+        ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        NoOp ->
-            ( model, Cmd.none )
-        UrlChange location ->
-            ({ model | location = location }, Cmd.none)
+    let
+        _ =
+            Debug.log "update==>  " ( msg, model )
+    in
+        case msg of
+            NoOp ->
+                ( model, Cmd.none )
 
-        GetPosts (Ok urls) ->
-            let
-                head =
-                    List.head urls
-            in
-                case head of
-                    Just url ->
-                        ( { model | urls = List.drop 1 urls }
-                        , getPost url
-                        )
+            UrlChange location ->
+                let
+                    route =
+                        Url.parseHash parseRoute location
+                in
+                    ( { model | route = route }, Cmd.none )
 
+            GetPosts (Ok urls) ->
+                let
+                    head =
+                        List.head urls
+                in
+                    case head of
+                        Just url ->
+                            ( { model | urls = List.drop 1 urls }
+                            , getPost url
+                            )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+            GetPosts (Err err) ->
+                ( { model | errors = err :: model.errors }, Cmd.none )
+
+            GotPost (Ok v) ->
+                ( { model | urls = List.drop 1 model.urls, posts = model.posts ++ [ v ] }
+                , case List.head model.urls of
                     Nothing ->
-                        ( model, Cmd.none )
+                        Cmd.none
 
-        GetPosts (Err err) ->
-            ( { model | error = Just err }, Cmd.none )
+                    Just url ->
+                        getPost url
+                )
 
-        GotPost (Ok v) ->
-            ( { model | urls = List.drop 1 model.urls, posts = model.posts ++ [ v ] }
-            , case List.head model.urls of
-                Nothing ->
-                    Cmd.none
+            GotPost (Err err) ->
+                ( { model | errors = err :: model.errors }, Cmd.none )
 
-                Just url ->
-                    getPost url
-            )
+            GetConfig (Ok config) ->
+                ( { model | config = Just config }, getBlogPosts model.source )
 
-        GotPost (Err err) ->
-            ( { model | error = Just err }, Cmd.none )
-
-        GetConfig (Ok config) ->
-            ( { model | config = Just config }, getBlogPosts model.source )
-
-        GetConfig (Err err) ->
-            ( { model | error = Just err }, Cmd.none )
+            GetConfig (Err err) ->
+                ( { model | errors = err :: model.errors }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg

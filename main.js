@@ -9650,6 +9650,289 @@ var _evancz$elm_markdown$Markdown$Options = F4(
 		return {githubFlavored: a, defaultHighlighting: b, sanitize: c, smartypants: d};
 	});
 
+var _evancz$url_parser$UrlParser$toKeyValuePair = function (segment) {
+	var _p0 = A2(_elm_lang$core$String$split, '=', segment);
+	if (((_p0.ctor === '::') && (_p0._1.ctor === '::')) && (_p0._1._1.ctor === '[]')) {
+		return A3(
+			_elm_lang$core$Maybe$map2,
+			F2(
+				function (v0, v1) {
+					return {ctor: '_Tuple2', _0: v0, _1: v1};
+				}),
+			_elm_lang$http$Http$decodeUri(_p0._0),
+			_elm_lang$http$Http$decodeUri(_p0._1._0));
+	} else {
+		return _elm_lang$core$Maybe$Nothing;
+	}
+};
+var _evancz$url_parser$UrlParser$parseParams = function (queryString) {
+	return _elm_lang$core$Dict$fromList(
+		A2(
+			_elm_lang$core$List$filterMap,
+			_evancz$url_parser$UrlParser$toKeyValuePair,
+			A2(
+				_elm_lang$core$String$split,
+				'&',
+				A2(_elm_lang$core$String$dropLeft, 1, queryString))));
+};
+var _evancz$url_parser$UrlParser$splitUrl = function (url) {
+	var _p1 = A2(_elm_lang$core$String$split, '/', url);
+	if ((_p1.ctor === '::') && (_p1._0 === '')) {
+		return _p1._1;
+	} else {
+		return _p1;
+	}
+};
+var _evancz$url_parser$UrlParser$parseHelp = function (states) {
+	parseHelp:
+	while (true) {
+		var _p2 = states;
+		if (_p2.ctor === '[]') {
+			return _elm_lang$core$Maybe$Nothing;
+		} else {
+			var _p4 = _p2._0;
+			var _p3 = _p4.unvisited;
+			if (_p3.ctor === '[]') {
+				return _elm_lang$core$Maybe$Just(_p4.value);
+			} else {
+				if ((_p3._0 === '') && (_p3._1.ctor === '[]')) {
+					return _elm_lang$core$Maybe$Just(_p4.value);
+				} else {
+					var _v4 = _p2._1;
+					states = _v4;
+					continue parseHelp;
+				}
+			}
+		}
+	}
+};
+var _evancz$url_parser$UrlParser$parse = F3(
+	function (_p5, url, params) {
+		var _p6 = _p5;
+		return _evancz$url_parser$UrlParser$parseHelp(
+			_p6._0(
+				{
+					visited: {ctor: '[]'},
+					unvisited: _evancz$url_parser$UrlParser$splitUrl(url),
+					params: params,
+					value: _elm_lang$core$Basics$identity
+				}));
+	});
+var _evancz$url_parser$UrlParser$parseHash = F2(
+	function (parser, location) {
+		return A3(
+			_evancz$url_parser$UrlParser$parse,
+			parser,
+			A2(_elm_lang$core$String$dropLeft, 1, location.hash),
+			_evancz$url_parser$UrlParser$parseParams(location.search));
+	});
+var _evancz$url_parser$UrlParser$parsePath = F2(
+	function (parser, location) {
+		return A3(
+			_evancz$url_parser$UrlParser$parse,
+			parser,
+			location.pathname,
+			_evancz$url_parser$UrlParser$parseParams(location.search));
+	});
+var _evancz$url_parser$UrlParser$intParamHelp = function (maybeValue) {
+	var _p7 = maybeValue;
+	if (_p7.ctor === 'Nothing') {
+		return _elm_lang$core$Maybe$Nothing;
+	} else {
+		return _elm_lang$core$Result$toMaybe(
+			_elm_lang$core$String$toInt(_p7._0));
+	}
+};
+var _evancz$url_parser$UrlParser$mapHelp = F2(
+	function (func, _p8) {
+		var _p9 = _p8;
+		return {
+			visited: _p9.visited,
+			unvisited: _p9.unvisited,
+			params: _p9.params,
+			value: func(_p9.value)
+		};
+	});
+var _evancz$url_parser$UrlParser$State = F4(
+	function (a, b, c, d) {
+		return {visited: a, unvisited: b, params: c, value: d};
+	});
+var _evancz$url_parser$UrlParser$Parser = function (a) {
+	return {ctor: 'Parser', _0: a};
+};
+var _evancz$url_parser$UrlParser$s = function (str) {
+	return _evancz$url_parser$UrlParser$Parser(
+		function (_p10) {
+			var _p11 = _p10;
+			var _p12 = _p11.unvisited;
+			if (_p12.ctor === '[]') {
+				return {ctor: '[]'};
+			} else {
+				var _p13 = _p12._0;
+				return _elm_lang$core$Native_Utils.eq(_p13, str) ? {
+					ctor: '::',
+					_0: A4(
+						_evancz$url_parser$UrlParser$State,
+						{ctor: '::', _0: _p13, _1: _p11.visited},
+						_p12._1,
+						_p11.params,
+						_p11.value),
+					_1: {ctor: '[]'}
+				} : {ctor: '[]'};
+			}
+		});
+};
+var _evancz$url_parser$UrlParser$custom = F2(
+	function (tipe, stringToSomething) {
+		return _evancz$url_parser$UrlParser$Parser(
+			function (_p14) {
+				var _p15 = _p14;
+				var _p16 = _p15.unvisited;
+				if (_p16.ctor === '[]') {
+					return {ctor: '[]'};
+				} else {
+					var _p18 = _p16._0;
+					var _p17 = stringToSomething(_p18);
+					if (_p17.ctor === 'Ok') {
+						return {
+							ctor: '::',
+							_0: A4(
+								_evancz$url_parser$UrlParser$State,
+								{ctor: '::', _0: _p18, _1: _p15.visited},
+								_p16._1,
+								_p15.params,
+								_p15.value(_p17._0)),
+							_1: {ctor: '[]'}
+						};
+					} else {
+						return {ctor: '[]'};
+					}
+				}
+			});
+	});
+var _evancz$url_parser$UrlParser$string = A2(_evancz$url_parser$UrlParser$custom, 'STRING', _elm_lang$core$Result$Ok);
+var _evancz$url_parser$UrlParser$int = A2(_evancz$url_parser$UrlParser$custom, 'NUMBER', _elm_lang$core$String$toInt);
+var _evancz$url_parser$UrlParser_ops = _evancz$url_parser$UrlParser_ops || {};
+_evancz$url_parser$UrlParser_ops['</>'] = F2(
+	function (_p20, _p19) {
+		var _p21 = _p20;
+		var _p22 = _p19;
+		return _evancz$url_parser$UrlParser$Parser(
+			function (state) {
+				return A2(
+					_elm_lang$core$List$concatMap,
+					_p22._0,
+					_p21._0(state));
+			});
+	});
+var _evancz$url_parser$UrlParser$map = F2(
+	function (subValue, _p23) {
+		var _p24 = _p23;
+		return _evancz$url_parser$UrlParser$Parser(
+			function (_p25) {
+				var _p26 = _p25;
+				return A2(
+					_elm_lang$core$List$map,
+					_evancz$url_parser$UrlParser$mapHelp(_p26.value),
+					_p24._0(
+						{visited: _p26.visited, unvisited: _p26.unvisited, params: _p26.params, value: subValue}));
+			});
+	});
+var _evancz$url_parser$UrlParser$oneOf = function (parsers) {
+	return _evancz$url_parser$UrlParser$Parser(
+		function (state) {
+			return A2(
+				_elm_lang$core$List$concatMap,
+				function (_p27) {
+					var _p28 = _p27;
+					return _p28._0(state);
+				},
+				parsers);
+		});
+};
+var _evancz$url_parser$UrlParser$top = _evancz$url_parser$UrlParser$Parser(
+	function (state) {
+		return {
+			ctor: '::',
+			_0: state,
+			_1: {ctor: '[]'}
+		};
+	});
+var _evancz$url_parser$UrlParser_ops = _evancz$url_parser$UrlParser_ops || {};
+_evancz$url_parser$UrlParser_ops['<?>'] = F2(
+	function (_p30, _p29) {
+		var _p31 = _p30;
+		var _p32 = _p29;
+		return _evancz$url_parser$UrlParser$Parser(
+			function (state) {
+				return A2(
+					_elm_lang$core$List$concatMap,
+					_p32._0,
+					_p31._0(state));
+			});
+	});
+var _evancz$url_parser$UrlParser$QueryParser = function (a) {
+	return {ctor: 'QueryParser', _0: a};
+};
+var _evancz$url_parser$UrlParser$customParam = F2(
+	function (key, func) {
+		return _evancz$url_parser$UrlParser$QueryParser(
+			function (_p33) {
+				var _p34 = _p33;
+				var _p35 = _p34.params;
+				return {
+					ctor: '::',
+					_0: A4(
+						_evancz$url_parser$UrlParser$State,
+						_p34.visited,
+						_p34.unvisited,
+						_p35,
+						_p34.value(
+							func(
+								A2(_elm_lang$core$Dict$get, key, _p35)))),
+					_1: {ctor: '[]'}
+				};
+			});
+	});
+var _evancz$url_parser$UrlParser$stringParam = function (name) {
+	return A2(_evancz$url_parser$UrlParser$customParam, name, _elm_lang$core$Basics$identity);
+};
+var _evancz$url_parser$UrlParser$intParam = function (name) {
+	return A2(_evancz$url_parser$UrlParser$customParam, name, _evancz$url_parser$UrlParser$intParamHelp);
+};
+
+var _lfarroco$elm_blog$Pages_ListPosts$article = function (_p0) {
+	return A2(
+		_elm_lang$html$Html$article,
+		{ctor: '[]'},
+		_elm_lang$core$List$singleton(
+			A2(
+				_evancz$elm_markdown$Markdown$toHtml,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$class('markdown-body'),
+					_1: {ctor: '[]'}
+				},
+				_p0)));
+};
+var _lfarroco$elm_blog$Pages_ListPosts$articles = function (_p1) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{ctor: '[]'},
+		A2(_elm_lang$core$List$map, _lfarroco$elm_blog$Pages_ListPosts$article, _p1));
+};
+var _lfarroco$elm_blog$Pages_ListPosts$listPosts = function (_p2) {
+	return A2(
+		_elm_lang$html$Html$main_,
+		{ctor: '[]'},
+		_elm_lang$core$List$singleton(
+			_lfarroco$elm_blog$Pages_ListPosts$articles(_p2)));
+};
+var _lfarroco$elm_blog$Pages_ListPosts$render = F2(
+	function (posts, page) {
+		return _lfarroco$elm_blog$Pages_ListPosts$listPosts(posts);
+	});
+
 var _lfarroco$elm_blog$Main$strField = function (key) {
 	return A2(_elm_lang$core$Json_Decode$field, key, _elm_lang$core$Json_Decode$string);
 };
@@ -9665,37 +9948,8 @@ var _lfarroco$elm_blog$Main$decodePostsUrls = _elm_lang$core$Json_Decode$list(
 var _lfarroco$elm_blog$Main$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$none;
 };
-var _lfarroco$elm_blog$Main$article = function (_p0) {
-	return A2(
-		_elm_lang$html$Html$article,
-		{ctor: '[]'},
-		_elm_lang$core$List$singleton(
-			A2(
-				_evancz$elm_markdown$Markdown$toHtml,
-				{
-					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$class('markdown-body'),
-					_1: {ctor: '[]'}
-				},
-				_p0)));
-};
-var _lfarroco$elm_blog$Main$articles = function (_p1) {
-	return A2(
-		_elm_lang$html$Html$div,
-		{ctor: '[]'},
-		A2(_elm_lang$core$List$map, _lfarroco$elm_blog$Main$article, _p1));
-};
-var _lfarroco$elm_blog$Main$menuItems = {
-	ctor: '::',
-	_0: {ctor: '_Tuple2', _0: '#home', _1: ''},
-	_1: {
-		ctor: '::',
-		_0: {ctor: '_Tuple2', _0: '#about', _1: 'About'},
-		_1: {ctor: '[]'}
-	}
-};
 var _lfarroco$elm_blog$Main$menu = function () {
-	var nav = function (_p2) {
+	var nav = function (_p0) {
 		return A2(
 			_elm_lang$html$Html$nav,
 			{ctor: '[]'},
@@ -9707,10 +9961,22 @@ var _lfarroco$elm_blog$Main$menu = function () {
 						_0: _elm_lang$html$Html_Attributes$class('flex-row'),
 						_1: {ctor: '[]'}
 					},
-					_p2)));
+					_p0)));
 	};
-	var item = function (_p3) {
-		var _p4 = _p3;
+	var ifEmpty = F2(
+		function (fn, str) {
+			return (_elm_lang$core$Native_Utils.cmp(
+				_elm_lang$core$String$length(str),
+				1) < 0) ? str : fn(str);
+		});
+	var item = function (menuItem) {
+		var url = A2(
+			ifEmpty,
+			F2(
+				function (x, y) {
+					return A2(_elm_lang$core$Basics_ops['++'], x, y);
+				})('#'),
+			menuItem.slug);
 		return A2(
 			_elm_lang$html$Html$li,
 			{ctor: '[]'},
@@ -9720,22 +9986,39 @@ var _lfarroco$elm_blog$Main$menu = function () {
 					_elm_lang$html$Html$a,
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$href(_p4._0),
+						_0: _elm_lang$html$Html_Attributes$href(url),
 						_1: {ctor: '[]'}
 					},
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html$text(_p4._1),
+						_0: _elm_lang$html$Html$text(menuItem.label),
 						_1: {ctor: '[]'}
 					}),
 				_1: {ctor: '[]'}
 			});
 	};
-	return function (_p5) {
+	return function (_p1) {
 		return nav(
-			A2(_elm_lang$core$List$map, item, _p5));
+			A2(_elm_lang$core$List$map, item, _p1));
 	};
 }();
+var _lfarroco$elm_blog$Main$viewError = function (err) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text(
+				_elm_lang$core$Basics$toString(err)),
+			_1: {ctor: '[]'}
+		});
+};
+var _lfarroco$elm_blog$Main$errors = function (list) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{ctor: '[]'},
+		A2(_elm_lang$core$List$map, _lfarroco$elm_blog$Main$viewError, list));
+};
 var _lfarroco$elm_blog$Main$title = function (config) {
 	return A2(
 		_elm_lang$html$Html$h1,
@@ -9750,13 +10033,26 @@ var _lfarroco$elm_blog$Main$title = function (config) {
 			_1: {ctor: '[]'}
 		});
 };
+var _lfarroco$elm_blog$Main$viewRoute = function (model) {
+	var _p2 = model.route;
+	if (_p2.ctor === 'Nothing') {
+		return _elm_lang$html$Html$text('');
+	} else {
+		var _p3 = _p2._0;
+		if (_p3.ctor === 'ListPosts') {
+			return A2(_lfarroco$elm_blog$Pages_ListPosts$render, model.posts, _p3._0);
+		} else {
+			return _elm_lang$html$Html$text('');
+		}
+	}
+};
 var _lfarroco$elm_blog$Main$maybePrint = F2(
 	function (fn, a) {
-		var _p6 = a;
-		if (_p6.ctor === 'Nothing') {
+		var _p4 = a;
+		if (_p4.ctor === 'Nothing') {
 			return _elm_lang$html$Html$text('');
 		} else {
-			return fn(_p6._0);
+			return fn(_p4._0);
 		}
 	});
 var _lfarroco$elm_blog$Main$view = function (model) {
@@ -9767,34 +10063,65 @@ var _lfarroco$elm_blog$Main$view = function (model) {
 			_0: _elm_lang$html$Html_Attributes$class('container'),
 			_1: {ctor: '[]'}
 		},
-		{
-			ctor: '::',
-			_0: A2(_lfarroco$elm_blog$Main$maybePrint, _lfarroco$elm_blog$Main$title, model.config),
-			_1: {
+		A2(
+			_elm_lang$core$List$map,
+			function (fn) {
+				return fn(model);
+			},
+			{
 				ctor: '::',
-				_0: _lfarroco$elm_blog$Main$menu(_lfarroco$elm_blog$Main$menuItems),
+				_0: function (_p5) {
+					return A2(
+						_lfarroco$elm_blog$Main$maybePrint,
+						_lfarroco$elm_blog$Main$title,
+						function (_) {
+							return _.config;
+						}(_p5));
+				},
 				_1: {
 					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$main_,
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _lfarroco$elm_blog$Main$articles(model.posts),
-							_1: {ctor: '[]'}
-						}),
+					_0: function (_p6) {
+						return _lfarroco$elm_blog$Main$errors(
+							function (_) {
+								return _.errors;
+							}(_p6));
+					},
 					_1: {
 						ctor: '::',
-						_0: _elm_lang$html$Html$text(
-							_elm_lang$core$Basics$toString(model.location)),
-						_1: {ctor: '[]'}
+						_0: function (_p7) {
+							return A2(
+								_lfarroco$elm_blog$Main$maybePrint,
+								function (_p8) {
+									return _lfarroco$elm_blog$Main$menu(
+										function (_) {
+											return _.menuItems;
+										}(_p8));
+								},
+								function (_) {
+									return _.config;
+								}(_p7));
+						},
+						_1: {
+							ctor: '::',
+							_0: _lfarroco$elm_blog$Main$viewRoute,
+							_1: {
+								ctor: '::',
+								_0: function (_p9) {
+									return _elm_lang$html$Html$text(
+										_elm_lang$core$Basics$toString(
+											function (_) {
+												return _.route;
+											}(_p9)));
+								},
+								_1: {ctor: '[]'}
+							}
+						}
 					}
 				}
-			}
-		});
+			}));
 };
 var _lfarroco$elm_blog$Main$config = 'blog-config.json';
-var _lfarroco$elm_blog$Main$baseUrl = 'https://api.github.com/repos/lfarroco/elm-blog';
+var _lfarroco$elm_blog$Main$baseUrl = 'https://api.github.com/repos';
 var _lfarroco$elm_blog$Main$rawUrl = 'https://raw.githubusercontent.com';
 var _lfarroco$elm_blog$Main$toUrl = _elm_lang$core$String$join('/');
 var _lfarroco$elm_blog$Main$postsUrl = function (source) {
@@ -9804,11 +10131,19 @@ var _lfarroco$elm_blog$Main$postsUrl = function (source) {
 			_0: _lfarroco$elm_blog$Main$baseUrl,
 			_1: {
 				ctor: '::',
-				_0: 'contents',
+				_0: source.user,
 				_1: {
 					ctor: '::',
-					_0: source.postsFolder,
-					_1: {ctor: '[]'}
+					_0: source.repo,
+					_1: {
+						ctor: '::',
+						_0: 'contents',
+						_1: {
+							ctor: '::',
+							_0: source.postsFolder,
+							_1: {ctor: '[]'}
+						}
+					}
 				}
 			}
 		});
@@ -9839,7 +10174,7 @@ var _lfarroco$elm_blog$Main$configUrl = function (source) {
 };
 var _lfarroco$elm_blog$Main$Model = F6(
 	function (a, b, c, d, e, f) {
-		return {urls: a, posts: b, error: c, config: d, source: e, location: f};
+		return {urls: a, posts: b, errors: c, config: d, source: e, route: f};
 	});
 var _lfarroco$elm_blog$Main$Config = F4(
 	function (a, b, c, d) {
@@ -9880,26 +10215,6 @@ var _lfarroco$elm_blog$Main$getConfig = function (source) {
 			_lfarroco$elm_blog$Main$configUrl(source),
 			_lfarroco$elm_blog$Main$decodeConfig));
 };
-var _lfarroco$elm_blog$Main$init = F2(
-	function (source, location) {
-		return {
-			ctor: '_Tuple2',
-			_0: {
-				urls: {ctor: '[]'},
-				posts: {ctor: '[]'},
-				error: _elm_lang$core$Maybe$Nothing,
-				config: _elm_lang$core$Maybe$Nothing,
-				source: source,
-				location: location
-			},
-			_1: _elm_lang$core$Platform_Cmd$batch(
-				{
-					ctor: '::',
-					_0: _lfarroco$elm_blog$Main$getConfig(source),
-					_1: {ctor: '[]'}
-				})
-		};
-	});
 var _lfarroco$elm_blog$Main$GotPost = function (a) {
 	return {ctor: 'GotPost', _0: a};
 };
@@ -9919,34 +10234,111 @@ var _lfarroco$elm_blog$Main$getBlogPosts = function (source) {
 		_lfarroco$elm_blog$Main$GetPosts,
 		A2(_elm_lang$http$Http$get, url, _lfarroco$elm_blog$Main$decodePostsUrls));
 };
+var _lfarroco$elm_blog$Main$UrlChange = function (a) {
+	return {ctor: 'UrlChange', _0: a};
+};
+var _lfarroco$elm_blog$Main$NoOp = {ctor: 'NoOp'};
+var _lfarroco$elm_blog$Main$ViewPage = function (a) {
+	return {ctor: 'ViewPage', _0: a};
+};
+var _lfarroco$elm_blog$Main$ViewPost = function (a) {
+	return {ctor: 'ViewPost', _0: a};
+};
+var _lfarroco$elm_blog$Main$ListPosts = function (a) {
+	return {ctor: 'ListPosts', _0: a};
+};
+var _lfarroco$elm_blog$Main$parseRoute = _evancz$url_parser$UrlParser$oneOf(
+	{
+		ctor: '::',
+		_0: A2(
+			_evancz$url_parser$UrlParser$map,
+			_lfarroco$elm_blog$Main$ListPosts(0),
+			_evancz$url_parser$UrlParser$top),
+		_1: {
+			ctor: '::',
+			_0: A2(
+				_evancz$url_parser$UrlParser$map,
+				_lfarroco$elm_blog$Main$ListPosts,
+				A2(
+					_evancz$url_parser$UrlParser_ops['</>'],
+					_evancz$url_parser$UrlParser$s('posts'),
+					_evancz$url_parser$UrlParser$int)),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_evancz$url_parser$UrlParser$map,
+					_lfarroco$elm_blog$Main$ViewPost,
+					A2(
+						_evancz$url_parser$UrlParser_ops['</>'],
+						_evancz$url_parser$UrlParser$s('post'),
+						_evancz$url_parser$UrlParser$string)),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_evancz$url_parser$UrlParser$map,
+						_lfarroco$elm_blog$Main$ViewPage,
+						A2(
+							_evancz$url_parser$UrlParser_ops['</>'],
+							_evancz$url_parser$UrlParser$s('page'),
+							_evancz$url_parser$UrlParser$string)),
+					_1: {ctor: '[]'}
+				}
+			}
+		}
+	});
+var _lfarroco$elm_blog$Main$init = F2(
+	function (source, location) {
+		return {
+			ctor: '_Tuple2',
+			_0: {
+				urls: {ctor: '[]'},
+				posts: {ctor: '[]'},
+				errors: {ctor: '[]'},
+				config: _elm_lang$core$Maybe$Nothing,
+				source: source,
+				route: A2(_evancz$url_parser$UrlParser$parseHash, _lfarroco$elm_blog$Main$parseRoute, location)
+			},
+			_1: _elm_lang$core$Platform_Cmd$batch(
+				{
+					ctor: '::',
+					_0: _lfarroco$elm_blog$Main$getConfig(source),
+					_1: {ctor: '[]'}
+				})
+		};
+	});
 var _lfarroco$elm_blog$Main$update = F2(
 	function (msg, model) {
-		var _p7 = msg;
-		switch (_p7.ctor) {
+		var _p10 = A2(
+			_elm_lang$core$Debug$log,
+			'update==>  ',
+			{ctor: '_Tuple2', _0: msg, _1: model});
+		var _p11 = msg;
+		switch (_p11.ctor) {
 			case 'NoOp':
 				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'UrlChange':
+				var route = A2(_evancz$url_parser$UrlParser$parseHash, _lfarroco$elm_blog$Main$parseRoute, _p11._0);
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{location: _p7._0}),
+						{route: route}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'GetPosts':
-				if (_p7._0.ctor === 'Ok') {
-					var _p9 = _p7._0._0;
-					var head = _elm_lang$core$List$head(_p9);
-					var _p8 = head;
-					if (_p8.ctor === 'Just') {
+				if (_p11._0.ctor === 'Ok') {
+					var _p13 = _p11._0._0;
+					var head = _elm_lang$core$List$head(_p13);
+					var _p12 = head;
+					if (_p12.ctor === 'Just') {
 						return {
 							ctor: '_Tuple2',
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
 								{
-									urls: A2(_elm_lang$core$List$drop, 1, _p9)
+									urls: A2(_elm_lang$core$List$drop, 1, _p13)
 								}),
-							_1: _lfarroco$elm_blog$Main$getPost(_p8._0)
+							_1: _lfarroco$elm_blog$Main$getPost(_p12._0)
 						};
 					} else {
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
@@ -9957,13 +10349,13 @@ var _lfarroco$elm_blog$Main$update = F2(
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								error: _elm_lang$core$Maybe$Just(_p7._0._0)
+								errors: {ctor: '::', _0: _p11._0._0, _1: model.errors}
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
 			case 'GotPost':
-				if (_p7._0.ctor === 'Ok') {
+				if (_p11._0.ctor === 'Ok') {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
@@ -9975,16 +10367,16 @@ var _lfarroco$elm_blog$Main$update = F2(
 									model.posts,
 									{
 										ctor: '::',
-										_0: _p7._0._0,
+										_0: _p11._0._0,
 										_1: {ctor: '[]'}
 									})
 							}),
 						_1: function () {
-							var _p10 = _elm_lang$core$List$head(model.urls);
-							if (_p10.ctor === 'Nothing') {
+							var _p14 = _elm_lang$core$List$head(model.urls);
+							if (_p14.ctor === 'Nothing') {
 								return _elm_lang$core$Platform_Cmd$none;
 							} else {
-								return _lfarroco$elm_blog$Main$getPost(_p10._0);
+								return _lfarroco$elm_blog$Main$getPost(_p14._0);
 							}
 						}()
 					};
@@ -9994,19 +10386,19 @@ var _lfarroco$elm_blog$Main$update = F2(
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								error: _elm_lang$core$Maybe$Just(_p7._0._0)
+								errors: {ctor: '::', _0: _p11._0._0, _1: model.errors}
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
 			default:
-				if (_p7._0.ctor === 'Ok') {
+				if (_p11._0.ctor === 'Ok') {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								config: _elm_lang$core$Maybe$Just(_p7._0._0)
+								config: _elm_lang$core$Maybe$Just(_p11._0._0)
 							}),
 						_1: _lfarroco$elm_blog$Main$getBlogPosts(model.source)
 					};
@@ -10016,16 +10408,13 @@ var _lfarroco$elm_blog$Main$update = F2(
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								error: _elm_lang$core$Maybe$Just(_p7._0._0)
+								errors: {ctor: '::', _0: _p11._0._0, _1: model.errors}
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
 		}
 	});
-var _lfarroco$elm_blog$Main$UrlChange = function (a) {
-	return {ctor: 'UrlChange', _0: a};
-};
 var _lfarroco$elm_blog$Main$main = A2(
 	_elm_lang$navigation$Navigation$programWithFlags,
 	_lfarroco$elm_blog$Main$UrlChange,
@@ -10052,7 +10441,6 @@ var _lfarroco$elm_blog$Main$main = A2(
 				A2(_elm_lang$core$Json_Decode$field, 'postsFolder', _elm_lang$core$Json_Decode$string));
 		},
 		A2(_elm_lang$core$Json_Decode$field, 'branch', _elm_lang$core$Json_Decode$string)));
-var _lfarroco$elm_blog$Main$NoOp = {ctor: 'NoOp'};
 
 var Elm = {};
 Elm['Main'] = Elm['Main'] || {};
